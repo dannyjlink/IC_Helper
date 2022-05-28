@@ -2,6 +2,7 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 
 import HomeView from "@/views/HomeView.vue";
+import PostcardMaker from "@/views/helper_views/PostcardMaker.vue"
 
 Vue.use(VueRouter);
 
@@ -13,6 +14,11 @@ const router = new VueRouter({
       path: '/',
       name: 'homeview',
       component: HomeView,
+    },
+    {
+      path: '/postcard_maker',
+      name: 'postcard_maker',
+      component: PostcardMaker
     },
   ],
 });

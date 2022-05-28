@@ -11,7 +11,6 @@
       class="tab-bottom"
       :style="{'border-top-color': color }"
     />
-    
   </div>
 </template>
 
