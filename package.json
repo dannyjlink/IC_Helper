@@ -24,6 +24,8 @@
     "vue-router": "^3.2.0",
     "vue-select": "^3.11.2",
     "vuetify": "^2.6.6",
+    "vuex": "^4.0.2",
+    "vuex-electron": "^1.0.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

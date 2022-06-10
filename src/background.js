@@ -45,10 +45,21 @@ function createWindow(route) {
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
+      webSecurity: false,
 
       enableRemoteModule: true,
     },
   });
+  
+  protocol.registerFileProtocol('file', (request, cb) => {
+    const url = request.url.replace('file:///', '')
+    const decodedUrl = decodeURI(url)
+    try {
+      return cb(decodedUrl)
+    } catch (error) {
+      console.error('ERROR: registerLocalResourceProtocol: Could not get file path:', error)
+    }
+  })
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
