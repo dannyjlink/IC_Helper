@@ -76,7 +76,7 @@ export default {
     return {
       num_students: 0,
       processed: 0,
-      samples: 1,
+      samples: 200,
       files: [
         {
           label: "Student Data",
@@ -308,8 +308,10 @@ export default {
 
           let data = this.parse_data(file.path)[0]["data"];
           let id_label;
-          if (file_type.test.match(/[B,M,E]OY/)) id_label = "Student ID";
-          else id_label = "LOCAL-STUDENT-ID";
+          if (file_type.test.match(/[B,M,E]OY/)) 
+            id_label = "Student ID";
+          else 
+            id_label = "LOCAL-STUDENT-ID";
 
           for (let s = 0; s < data.length; s++) {
             let xlsx_student = data[s];

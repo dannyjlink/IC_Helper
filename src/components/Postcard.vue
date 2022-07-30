@@ -32,23 +32,23 @@
           </tr>
           <tr>
             <th class="left">STAAR</th>
-            <td class="score center cell">{{ student.data[subject].STAAR.eng }}</td>
-            <td class="score center cell"> {{ student.data[subject].STAAR.span }}</td>
+            <td class="score center cell">{{ student.data[subject].STAAR ? student.data[subject].STAAR.eng  : "" }}</td>
+            <td class="score center cell">{{ student.data[subject].STAAR ? student.data[subject].STAAR.span : "" }}</td>
           </tr>
           <tr>
             <th class="left">BOY 360</th>
-            <td class="score center cell">{{ student.data[subject].BOY.eng }}</td>
-            <td class="score center cell">{{ student.data[subject].BOY.span }}</td>
+            <td class="score center cell">{{ student.data[subject].BOY ? student.data[subject].BOY.eng  : ""}}</td>
+            <td class="score center cell">{{ student.data[subject].BOY ? student.data[subject].BOY.span : ""}}</td>
           </tr>
           <tr>
             <th class="left">MOY 360</th>
-            <td class="score center cell">{{ student.data[subject].MOY.eng }}</td>
-            <td class="score center cell">{{ student.data[subject].MOY.span }}</td>
+            <td class="score center cell">{{ student.data[subject].MOY ? student.data[subject].MOY.eng  : "" }}</td>
+            <td class="score center cell">{{ student.data[subject].MOY ? student.data[subject].MOY.span : "" }}</td>
           </tr>
           <tr>
             <th class="left">EOY 360</th>
-            <td class="score center cell">{{ student.data[subject].EOY.eng }}</td>
-            <td class="score center cell">{{ student.data[subject].EOY.span }}</td>
+            <td class="score center cell">{{ student.data[subject].EOY ? student.data[subject].EOY.eng  : "" }}</td>
+            <td class="score center cell">{{ student.data[subject].EOY ? student.data[subject].EOY.span : "" }}</td>
           </tr>
         </table>
       </div>
@@ -91,6 +91,7 @@ export default {
   },
   mounted() {
     this.identifier_width = (100 / this.student.identifiers.length) + "%";
+    console.log(this.student)
   },
   methods: {
 
