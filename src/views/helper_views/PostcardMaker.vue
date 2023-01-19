@@ -1,67 +1,78 @@
 <template>
   <main>
     <HomeTab id="back-tab" />
-    <div class="page-header">
+    <div class="page-header" ref="top">
       <h1 class="page-title">Postcard Maker</h1>
       <div class="text-container">
         <p>
-          This page will generate 'postcards' for the students you give it data
-          for.
+          This page will generate 'postcards' for the students you give it data for.
+          Some data may not be collected due to variation in formatting or incorrect cell targetting.
+          Anything marked with '-' means it's a correct omission. No data goes there for that student.
+          Blank cells should be cross-referenced with the source data before
         </p>
       </div>
     </div>
-    <div class="two-column-container">
-      <!-- Left column will be for all the file inputs -->
 
-      <div id="input-column" class="page-column">
-        <label
-          :for="file.id + '-input'"
-          class="file-input-container"
-          v-for="file in files"
-          :key="file.id"
-          ><div class="label">{{ file.label }}</div>
-          <FileButton class="button" :label="file.id" :type="file.type" />
-          <input
-            v-if="file.type === 'directory'"
-            @input="change(file.id, $event.target.files)"
-            :id="file.id + '-input'"
-            class="file-input"
-            type="file"
-            :style="{ display: 'none' }"
-            webkitdirectory
-          />
-          <input
-            v-else
-            :id="file.id + '-input'"
-            class="file-input"
-            type="file"
-            :accept="file.accept"
-            @input="change(file.id, $event.target.files)"
-            :style="{ display: 'none' }"
-          />
-        </label>
+    <div class="body-container">
+      <!--User Input Form-->
+      <form class="options">
+        <!--Left Column: file inputs-->
+        <div class="form-column">
+          <h2 class="column-header">Files</h2>
+          <div class="file-input-container" v-for="file in files" :key="file.id">
+            <label>{{ file.label }}</label>
+            <FileButton :label="file.id" :type="file.type" />
+          </div>
+        </div>
+
+        <!--Right Column: filters-->
+
+        <div class="form-column">
+          <h2 class="column-header">Filters</h2>
+          <div class="filter-content">
+
+            <div v-for="(qualifier, index) in Object.keys(filters)" :key="index" class="filter-section">
+              <h3 class="section-header capitalize">{{ qualifier }}</h3>
+              <div class="checkbox-container" v-for="item in filters[qualifier]" :key="item.alias">
+                <label>{{ item.label }}</label>
+                <input type="checkbox" v-model="item.include" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <!--Action Buttons-->
+      <div class="multi-button-container generate-buttons">
+        <TextButton class="submit-button" text="Generate Postcards" alias="submit" @btn-click="generate_postcards()" />
+        <TextButton v-if="generated" class="submit-button" text="Reset" alias="reset" @btn-click="reset()" />
       </div>
 
-      <!-- Right column will be for all the postcard outputs -->
-      <div class="page-column output-column">
-        <div v-if="students.length > samples">
-          <Postcard v-for="i in samples" :key="i" :student="students[i]" :subject="'reading'"></Postcard>
-        </div>
+      <!--Postcard Printer-->
+      <vue-html2pdf class="printable" ref="html2Pdf" v-if="generated" :enable-download="true" :preview-modal="true"
+        :show-layout="false" :filename="filename" :pdf-quality="2" :manual-pagination="true" pdf-format="letter"
+        pdf-orientation="portrait" :html-to-pdf-options="opts">
+        <PostcardPrinter class="sheet-container pdf-content" slot="pdf-content" :classroom="current_class"
+          :filters="filters" />
+      </vue-html2pdf>
+      <PostcardModal v-if="generated" class="preview-window" :classroom="current_class" />
+
+      <div class="multi-button-container print-buttons" v-show="generated">
+        <TextButton class="submit-button" text="Previous Class" alias="prev" @btn-click="previousClass()" />
+        <TextButton class="submit-button" text="Print to PDF" alias="print" @btn-click="exportToPDF()" />
+        <TextButton class="submit-button" text="Next Class" alias="next" @btn-click="nextClass()" />
       </div>
     </div>
-    <input type="submit" @click="submit()" />
   </main>
 </template>
 
 <script>
-/*
-import Printd from 'printd';
-*/
-import * as XLSX from "xlsx";
 import fs from "fs";
-import Postcard from "@/components/Postcard.vue";
+import * as XLSX from "xlsx";
+import VueHtml2pdf from 'vue-html2pdf';
 import { HomeTab } from "@/components/menus";
-import { FileButton } from "@/components/inputs";
+import { FileButton, TextButton } from "@/components/inputs";
+import { PostcardPrinter, PostcardModal } from "@/components/postcards";
 
 export default {
   name: "PostcardMaker",
@@ -69,14 +80,74 @@ export default {
   components: {
     HomeTab,
     FileButton,
-    Postcard,
+    TextButton,
+    VueHtml2pdf,
+    PostcardPrinter,
+    PostcardModal
   },
 
   data() {
     return {
       num_students: 0,
+      num_subjects: 2,
       processed: 0,
-      samples: 200,
+      generated: false,
+
+      filters: {
+        // Alias refers to what that grade appears as in student data. 
+        // Necessary for filtering grades
+        grades: [
+          {
+            label: 'Pre-K',
+            alias: 'PK',
+            include: false,
+          },
+          {
+            label: 'Kinder',
+            alias: 'KG',
+            include: false,
+          },
+          {
+            label: '1st Grade',
+            alias: '01',
+            include: false,
+          },
+          {
+            label: '2nd Grade',
+            alias: '02',
+            include: false,
+          },
+          {
+            label: '3rd Grade',
+            alias: '03',
+            include: true,
+          },
+          {
+            label: '4th Grade',
+            alias: '04',
+            include: true,
+          },
+          {
+            label: '5th Grade',
+            alias: '05',
+            include: true,
+          },
+        ],
+        // alias links the subject filter to it's respective this.file id
+        // Necessary for filtering subjects
+        subjects: [
+          {
+            label: "Reading",
+            alias: "reading",
+            include: true,
+          },
+          {
+            label: "Math",
+            alias: "math",
+            include: true,
+          }
+        ]
+      },
       files: [
         {
           label: "Student Data",
@@ -106,23 +177,130 @@ export default {
           accept: ".png, .jpg",
           path: "D:\\Complete Data Set\\Student Photos 21-22\\images",
         },
+        {
+          label: "Postcard Save Location",
+          id: "output",
+          type: "directory",
+          path: "C:\\Users\\danny\\Downloads",
+        }
       ],
-      students: [],
-      settings: {
-        "3-5": true,
-        "k-2": false,
-        reading: true,
-        math: true,
-      },
+      // opts: {
+      //   margin: 0,
+      //   image: {
+      //     type: 'jpeg',
+      //     quality: 2.0
+      //   },
+
+      //   enableLinks: false,
+      //   html2canvas: {
+      //     scale: 1,
+      //     width: 850,
+      //     useCORS: true
+      //   },
+
+      //   jsPDF: {
+      //     unit: "px",
+      //     hotfixes: ["px_scaling"],
+      //     format: "letter",
+      //     orientation: "portrait",
+      //   },
+      // },
+      students: {},
+      classrooms: [],
+      current_class_index: 0,
     };
   },
 
   mounted() {
     XLSX.set_fs(fs);
-    // Check for pre-existing file information
+  },
+
+  computed: {
+    current_class() {
+      if (this.generated == false)
+        return []
+      return this.classrooms[this.current_class_index];
+    },
+    opts() {
+      var fname = this.filename;
+      return {
+        margin: 0,
+        filename: fname,
+        image: {
+          type: 'jpeg',
+          quality: 2.0
+        },
+
+        enableLinks: false,
+        html2canvas: {
+          scale: 1,
+          width: 850,
+          useCORS: true
+        },
+
+        jsPDF: {
+          unit: "px",
+          hotfixes: ["px_scaling"],
+          format: "letter",
+          orientation: "portrait",
+        }
+      }
+    },
+    filename() {
+      if (this.generated == false)
+        return []
+
+      var teacher = Object.keys(this.classrooms[this.current_class_index]);
+
+      var grade = "";
+      for (const grade_level of Object.keys(this.students)) {
+        if (Object.keys(this.students[grade_level]).includes(teacher)) {
+          grade = Object.keys(this.students)[grade_level];
+          grade = grade_level;
+          break;
+        }
+      }
+      var subjects = "";
+      // 3rd-Walker-reading+math.pdf
+      for (const subject of this.filters.subjects) {
+        if (subjects == "" && subject.include)
+          subjects += subject.alias;
+        else if (subject.include)
+          subjects += '+' + subject.alias;
+      }
+
+      var filename = grade + '-' + teacher + '-' + subjects + '.pdf';
+      return filename;
+      // Should look something like below
+      // 3rd-Walker-reading+math.pdf
+      // 3rd-Walker-reading.pdf
+      // 3rd-Walker-math.pdf
+    }
   },
 
   methods: {
+    reset() {
+      this.generated = false;
+      this.current_class_index = 0;
+      this.classrooms = [];
+      this.students = {};
+    },
+    nextClass() {
+      // Check there is another class within the grade
+      // TODO: Make sure it sets to 0 on over-increment
+      this.current_class_index += 1;
+      if (this.current_class_index >= this.classrooms.length)
+        this.current_class_index = 0;
+
+    },
+    previousClass() {
+      this.current_class_index -= 1;
+      if (this.current_class_index < 0)
+        this.current_class_index = this.classrooms.length - 1;
+    },
+    exportToPDF() {
+      this.$refs['html2Pdf'].generatePdf()
+    },
     // Save filepath on user input
     change(id, files) {
       var path;
@@ -143,30 +321,40 @@ export default {
         }
         path = paths[0].slice(0, k);
       } else path = files[0].path;
-      
+
       this.files.find((file) => { return file.id === id; }).path = path;
       console.log("Path set for " + id + ": " + this.files.find((file) => { return file.id === id; }).path);
       this.save_files();
     },
 
-    submit() {
-      this.generate_postcards();
-    },
-
     generate_postcards() {
-      var students = [], studentIDs = [];
-      // Get list of student names and their identifiers
+      // Need to reset sub-components
+      this.generated = false;
+      this.students = [];
+      this.classrooms = [];
+      this.current_class_index = 0;
 
+      var students = [], studentIDs = [];
+
+      // Get list of student names and their identifiers
       var studentData = this.parse_data(this.getPathByID("student_data"))[0]["data"];
 
-      // DO CUSTOM FILTERS HERE NITWIT
       // Filter out inactive students and those in early enrollment
       studentData = studentData.filter((student) => {
-        return (
-          (student["Current Active"] || student["Current Active"] == "TRUE") &&
-          student["Grade"] != "EE"
-        );
+        return (this.checkTrue(student["Current Active"]) && student["Grade"] != "EE");
       });
+
+      /* User Filters */
+      // Grade Levels
+      for (let i = 0; i < this.filters.grades.length; i++) {
+        var grade = this.filters.grades[i];
+        if (grade.include == false) {
+          //console.log("Not including " + grade.label);
+          studentData = studentData.filter((student) => {
+            return (this.checkTrue(student["Current Active"]) && student["Grade"] != grade.alias);
+          });
+        }
+      }
 
       console.log("Building " + studentData.length + " Student Profiles");
 
@@ -181,13 +369,28 @@ export default {
           grade: this.grade_alias(xlsx_student["Grade"]),
           teacher: this.teacher_alias(xlsx_student["Teacher"]),
           student_id: xlsx_student["Student Number"],
-          image_path: image_path + "\\" + xlsx_student["Student Number"] + ".jpg",
+          image_path: "",
           identifiers: [],
-          data: {
-            math: {},
-            reading: {},
-          },
+          data: {}
         };
+        // Check student's image exists
+        try {
+          const path = image_path + "\\" + student.student_id + ".jpg"
+          if (fs.existsSync(path))
+            student.image_path = path;
+          else
+            student.image_path = image_path + "\\default.jpg";
+        } catch (err) {
+          console.log(err);
+        }
+
+        // Add only the selected subjects
+        for (let i = 0; i < this.filters.subjects.length; i++) {
+          var subject_area = this.filters.subjects[i];
+          if (subject_area.include) {
+            student.data[subject_area.alias] = {};
+          }
+        }
 
         // Identifiers
         student.identifiers.push(this.race_alias(xlsx_student["Reported Federal Race"])); // Race first in array
@@ -211,11 +414,17 @@ export default {
         this.processed++;
       }
 
-      // Handle Reading Scores
-      if (this.settings.reading) {
-        let subject = "reading";
-        let files = this.ls(this.getPathByID(subject), true); // Collect all the files we'll need to parse
-        // Run through files
+      /* Test Score Parsing */
+      this.num_subjects = 0;
+      for (let i = 0; i < this.filters.subjects.length; i++) {
+        this.num_subjects++;
+        var subject = this.filters.subjects[i];
+        //console.log(subject.alias + ": " + subject.include);
+        if (subject.include == false)
+          continue;
+
+        // Acquire and iterate through files for this subject
+        let files = this.ls(this.getPathByID(subject.alias), true);
         for (let f = 0; f < files.length; f++) {
           let file = files[f];
           let file_type = this.get_file_type(file);
@@ -288,98 +497,75 @@ export default {
                 datapoints.span = "-";
               else if (datapoints.eng == null && datapoints.span != null)
                 datapoints.eng = "-";
-  
+
             }
-            student.data[subject][label] = datapoints;
-          }
-
-          
-        }
-      }
-
-      // Handle Math Scores
-      if (this.settings.math) {
-        let subject = "math";
-        let files = this.ls(this.getPathByID(subject), true); // Collect all the files we'll need to parse
-        // Run through files
-        for (let f = 0; f < files.length; f++) {
-          let file = files[f];
-          let file_type = this.get_file_type(file);
-
-          let data = this.parse_data(file.path)[0]["data"];
-          let id_label;
-          if (file_type.test.match(/[B,M,E]OY/)) 
-            id_label = "Student ID";
-          else 
-            id_label = "LOCAL-STUDENT-ID";
-
-          for (let s = 0; s < data.length; s++) {
-            let xlsx_student = data[s];
-            let datapoints;
-            let label = "";
-            let student = students.find((s) => { return s["student_id"] == xlsx_student[id_label]; });
-            if (!student) continue;
-
-            // Interim
-            if (file_type.test.includes("Interim")) {
-              label = file_type.test == "Interim 2" ? "interim_2" : "interim_1";
-              datapoints = {
-                approaches: xlsx_student["PROBABILITY OF ACHIEVING APPROACHES GRADE LEVEL"] + file_type.language[0].toUpperCase(),
-                meets: xlsx_student["PROBABILITY OF ACHIEVING MEETS GRADE LEVEL"] + file_type.language[0].toUpperCase(),
-                masters: xlsx_student["PROBABILITY OF ACHIEVING MASTERS GRADE LEVEL"] + file_type.language[0].toUpperCase(),
-              };
-            }
-            // Star 360
-            else if (file_type.test.match(/[B,M,E]OY/)) {
-              label = file_type.test;
-              datapoints = {
-                eng: null,
-                span: null,
-              };
-              datapoints[file_type.language] = xlsx_student["GE"];
-              if (datapoints.eng != null && datapoints.span == null) {
-                datapoints.span = "-";
-              } else if (datapoints.eng == null && datapoints.span != null) {
-                datapoints.eng = "-";
-              }
-            }
-            // STAAR
-            else if (file_type.test == "STAAR") {
-              let columns = Object.keys(xlsx_student);
-              let target;
-              columns = columns.filter((key) => {
-                return (
-                  key.indexOf("STAAR") > -1 &&
-                  key.indexOf("Grade") > -1 &&
-                  key.indexOf("Performance") > -1
-                );
-              });
-              if (columns.length != 1) {
-                console.log("Error in determining target column: " + file.name);
-                continue;
-              } else {
-                target = columns[0];
-              }
-
-              label = file_type.test;
-              datapoints = {
-                eng: null,
-                span: null,
-              };
-              datapoints[file_type.language] = xlsx_student[target];
-              if (datapoints.eng != null && datapoints.span == null) {
-                datapoints.span = "-";
-              } else if (datapoints.eng == null && datapoints.span != null) {
-                datapoints.eng = "-";
-              }
-            }
-            student.data[subject][label] = datapoints;
+            student.data[subject.alias][label] = datapoints;
           }
         }
       }
-      this.students = students;
+      this.sort_students(students)
+      this.generated = true;
     },
 
+    // Sorts students into their classroom teachers and teachers into their grade
+    sort_students(unsorted_students) {
+      var students = unsorted_students;
+
+      // Iterate through the grades included in the filters
+      var grade_levels = this.filters.grades.filter((grade) => {
+        if (grade.include)
+          return true;
+      })
+
+      // Iterate through grades
+      for (let i = 0; i < grade_levels.length; i++) {
+        var target_grade = this.grade_revert(grade_levels[i].alias);
+
+        var grade = students.filter((student) => {
+          if (student.grade == target_grade)
+            return true;
+        });
+
+        var sorted = {}
+        // Split them into classes for organization purposes regarding this.students
+        while (grade.length > 0) {
+          let student = grade.shift();
+          let teacher = student.teacher
+
+          if (!Object.keys(sorted).includes(teacher))
+            sorted[teacher] = [student];
+          else
+            sorted[teacher].push(student);
+        }
+
+        // Flatten grade into array of just classrooms for iteration purposes
+        for (const teacher of Object.keys(sorted)) {
+          var classroom = { [teacher]: sorted[teacher] }
+          this.classrooms.push(classroom);
+        }
+
+        this.students[target_grade] = sorted;
+      }
+    },
+    // Returns what the filter.grade.alias appears as in the student data
+    grade_revert(grade) {
+      switch (grade) {
+        case "PK":
+          return "Pre-K";
+        case "KG":
+          return "Kinder";
+        case "01":
+          return "1st";
+        case "02":
+          return "2nd";
+        case "03":
+          return "3rd";
+        case "04":
+          return "4th";
+        case "05":
+          return "5th";
+      }
+    },
     /* Utility and Parsing Functions */
     checkTrue(val) {  // I'm extremely lazy but paranoid :^)
       return (val == "TRUE" || val == true);
@@ -393,7 +579,6 @@ export default {
         data: XLSX.utils.sheet_to_json(excelData.Sheets[name]),
       }));
     },
-
     getPathByID(id) {
       var result = this.files.find((file) => {
         return file.id === id;
@@ -436,7 +621,6 @@ export default {
       return files;
     },
 
-    /* Test Score related functions */
     // Breaks down file name and path into a JSON object
     get_file_type(file) {
       var result = {};
@@ -500,23 +684,6 @@ export default {
       return result;
     },
 
-    /* Settings related functions */
-    save_files() {
-      //Store.set('files', this.files);
-    },
-
-    initialize_files() {
-      /*
-      // Initialize file paths
-      if (Store.get('files') == null) {
-        // First time user
-        this.save_files();
-      } else {  // Return user
-        this.files = Store.get('files');
-      }
-      */
-    },
-
     /* Student data renaming functions */
     race_alias(race) {
       switch (race) {
@@ -544,15 +711,15 @@ export default {
         case "KG":
           return "Kinder";
         case "01":
-          return "1st grade";
+          return "1st";
         case "02":
-          return "2nd grade";
+          return "2nd";
         case "03":
-          return "3rd grade";
+          return "3rd";
         case "04":
-          return "4th grade";
+          return "4th";
         case "05":
-          return "5th grade";
+          return "5th";
       }
     },
     // Finds teacher last name and returns it formatted
@@ -570,78 +737,130 @@ export default {
     // Shortens STAAR results
     STAAR_alias(score) {
       if (score.includes("Masters")) return "Masters"
-      else if(score.includes("Meets")) return "Meets"
-      else if(score.includes("Approaches")) return "Approaches"
+      else if (score.includes("Meets")) return "Meets"
+      else if (score.includes("Approaches")) return "Approaches"
     }
   },
 };
 </script>
 
 <style scoped>
-/* File input elements */
-.file-input-container {
-  width: 75%;
-  height: 3.5em;
-  padding: 1em;
-
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-}
-.label {
-  order: 1;
-}
-.button {
-  order: 2;
-  position: relative;
-  width: 10em;
-}
-
 main {
   height: 100%;
   width: 100%;
   top: 0;
   left: 0;
   position: absolute;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: scroll;
   background-color: #eef1ef;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+
+#back-tab {
+  top: 0;
+}
+
+.body-container {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 100%;
+  padding: 2.5em;
+  order: 2;
+}
+
 .page-header {
   width: 95%;
   text-align: center;
   order: 1;
 }
-.two-column-container {
-  width: 95%;
-  height: 50%;
-  order: 2;
-  margin: 1em auto;
-  display: flex;
-  flex-direction: row;
-}
-.page-column {
-  width: 50%;
-  margin: auto 5em;
-  display: flex;
-  flex-direction: column;
-  flex-basis: flex-start;
-}
 
-.output-column {
-  overflow-y: scroll !important;
-}
 .page-title {
   font-size: xx-large;
   font-family: "Spoof Bold";
 }
+
 .text-container {
-  font-size: 1em;
+  width: 95%;
 }
-#back-tab {
-  top: 0;
+
+.options {
+  display: flex;
+  flex-flow: row nowrap;
+  width: 100%;
+}
+
+.column-header {
+  text-align: center;
+}
+
+/* File Input Column */
+.form-column {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 50%;
+}
+
+.file-input-container {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: space-between;
+  width: 80%;
+  padding: 1em 10%;
+}
+
+/* Filter Column */
+.filter-content {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+.filter-section {
+  width: 30%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+}
+
+.section-header {
+  align-self: center;
+}
+
+.checkbox-container {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  padding: 0.25em 0;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+/* Action Buttons and previewer */
+.multi-button-container {
+  width: 60%;
+  align-self: center;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+.generate-buttons {
+  order: 2;
+}
+
+.print-buttons {
+  order: 4;
+}
+
+.preview-window {
+  height: 750px;
+  padding-top: 2em;
+  order: 3;
 }
 </style>

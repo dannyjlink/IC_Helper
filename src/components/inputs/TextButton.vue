@@ -1,13 +1,13 @@
 <template>
-  <div
-    :id='label'
-    class="file-button"
+  <div 
+    :id="alias" 
+    class="text-button"
     :style="{ 'border': '2px solid ' + color }"
+    @click="$emit('btn-click')"
     v-on:mouseenter="on_enter()"
     v-on:mouseleave="on_leave()"
   >
-    <img class="icon" src="@/assets/file_upload.svg" />
-    <div class="label">{{ placeholder }}</div>
+    <div class="text">{{ placeholder }}</div>
   </div>
 </template>
 
@@ -15,17 +15,18 @@
 import anime from "animejs";
 
 export default {
-  name: "FileButton",
+  name: "TextButton",
+
   props: [
-    "type",   // Folder or Directory, effects button placeholder
-    "label",  // Label text, not required but will display if given
-    "bgc"
+    "text", 
+    "bgc", 
+    "alias"
   ],
 
   data() {
     return {
-      placeholder: "Choose File",
-      color: '#7d98a1'
+      placeholder: null,
+      color: '#7d98a1', 
     };
   },
 
@@ -33,15 +34,17 @@ export default {
     if (this.bgc != null) {
       this.color = this.bgc;
     }
-    if (this.type == 'directory') {
-      this.placeholder = "Choose Folder"
+    if (this.text != null) {
+      this.placeholder = this.text;
     }
+    this.ready = true;
+    
   },
 
   methods: {
     async on_enter() {
       anime({
-        targets: "#" + this.label,
+        targets: "#" + this.alias,
         'background-color': ['rgba(0, 0, 0, 0)', this.color],
         scale: 1.2,
         duration: 1000,
@@ -51,7 +54,7 @@ export default {
 
     on_leave() {
       anime({
-        targets: "#" + this.label,
+        targets: "#" + this.alias,
         'background-color': [this.color, 'rgba(0, 0, 0, 0)'],
         scale: 1,
         duration: 1000,
@@ -63,7 +66,7 @@ export default {
 </script>
 
 <style scoped>
-.file-button {
+.text-button {
   position: relative;
   width: 11em;
   height: 2.5em;
@@ -74,12 +77,5 @@ export default {
   justify-content: space-around;
   align-items: center;
   cursor: pointer;
-}
-.icon {
-  height: 1.5em;
-  order: 1;
-}
-.label {
-  order: 2;
 }
 </style>

@@ -5,21 +5,23 @@
       <div class="top-block-info">
           
           <!-- Name, grade, and class row-->
-          <div class="row-container border">
-            <div class="cell-container name "><p class="content ">{{ student.name.last }}, {{ student.name.first }}</p></div>
-            <div class="cell-container class-info center"><p class="content">{{ student.grade }}</p></div>
-            <div class="cell-container class-info center"><p class="content">{{ student.teacher }}</p></div>
+          <div class="profile-row border">
+            <div class="cell-container name "><p class="profile-content">{{ student.name.last }}, {{ student.name.first }}</p></div>
+            <!--div class="class-info-container"-->
+              <div class="cell-container grade center"><p class="profile-content">{{ student.grade }}</p></div>
+              <div class="cell-container teacher center"><p class="profile-content">{{ student.teacher }}</p></div>
+            <!--/div-->
           </div>
           
           <!-- Identifiers -->
           <div class="row-container identifiers side-borders">
-            <div class="cell-container center identifier" 
+            <div class="cell-container center identifiers" 
               :style="{
                 'width': 100 / student.identifiers.length + '%',  // Auto sizes identifier cells
-                'border-right': index != student.identifiers.length - 1 ? '1px solid black' : 'none'  // Borders in-between identifiers, none on the last one since row is bordered
+                'border-right': index != student.identifiers.length - 1 ? '1px solid black' : 'none',  // Borders in-between identifiers, none on the last one since row is bordered
               }" 
               v-for="(identifier, index) in student.identifiers" :key="index">
-              <p class="center ">{{ identifier }}</p>
+              <p class="center" :style="{'font-size': identifierFontSize }">{{ identifier }}</p>
             </div>
           </div>
 
@@ -56,7 +58,7 @@
     <!-- Interim result tables -->
     <table class="achieving-table">
       <tr>
-        <th class="left sized-row-label">Probability of Achieving:</th>
+        <th class="left sized-row-label prob">Probability of Achieving:</th>
         <th>Approaches</th>
         <th>Meets</th>
         <th>Masters</th>
@@ -75,35 +77,40 @@
       </tr>
     </table>
   </div>
-
 </template>
 
 <script>
-//import fs from "fs";
-
 export default {
   name: "Postcard",
   props: ["student", "subject"], //type is either math or english
-  data() {
-    return {
-      identifier_width: null
-    };
-  },
-  mounted() {
-    this.identifier_width = (100 / this.student.identifiers.length) + "%";
-    console.log(this.student)
-  },
-  methods: {
 
-  },
+  computed: {
+    identifierFontSize() {
+      if (this.student.identifiers.length >= 5)
+        return 'x-small !important';
+      else 
+        return 'smaller';
+    },
+  }
 };
 </script>
 
 <style>
+.prob {
+  font-size: 12.5px !important;
+}
+
+/* Card */
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 350px;
+  height: 200px;
+}
 /* Top block */
 .top-block {
   width: 100%;
-  height: 11.2em;
+  height: 140px;
 
   display: flex;
   flex-direction: row;
@@ -111,7 +118,6 @@ export default {
 .top-block-info {
   width: 100%;
   height: 100%;
-
   display: flex;
   flex-direction: column;
 }
@@ -121,39 +127,52 @@ export default {
 
 /* Student Profile */
 .row-container {
-  height: Calc(1.6em - 1px);
+  height: 19px;
+  width: 100% - 3px;
   border: 1px solid black;
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  flex-flow: row nowrap;
+}
+.profile-row {
+  height: 19px;
+  width: 100% - 3px;
+  border: 1px solid black;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+.profile-content {
+  font-size: smaller;
 }
 .name {
-  width: 45%;
+  order: 0;
   text-align: left;
-  padding: 0 0.5em;
+  padding: 0 6px;
 }
-.class-info {
-  width: 27.5%;
+.grade {
+  order: 1;
+}
+.teacher {
+  order: 2;
+  position: relative;
+  right: 0;
+  padding: 0 6px;
 }
 .identifiers {
-  height: Calc(1.6em - 2px);
+  height: 19px;
   position: relative;
   top: -1px;
   justify-content: space-around;
   align-content: stretch;
 }
-.identifier {
-  height: 100%;
-
-}
 
 /* Exam Table */
 .exam-table {
-  height: Calc(8em + 2px);
+  height: 102px;
   width: Calc(100% + 1px);
   position: relative;
-  top: -2px;
-  right: 0px;
+  top: -3px;
+  left: 0px;
   border-collapse: collapse;
   table-layout: auto;
 }
@@ -163,37 +182,27 @@ export default {
   align-items: center;
 }
 
-
 /* General Table Stylings */
 table {
   border-collapse: collapse;
   table-layout: auto;
 }
-
+td {
+  font-size: smaller;
+}
 td, th {
   border: 1px solid black;
 }
 .sized-row-label {
-  width: 11.1em;
+  width: 139px;
 }
-
 .achieving-table {
-  height: Calc(4.8em);
+  height: 60px;
   width: 100%;
   position: relative;
 }
-
-
 th {
   background-color:#D8D8D8;
-}
-
-/* Card */
-.card {
-  position: relative;
-  overflow: hidden;
-  width: 28em;
-  height: 16em;
 }
 
 /* Util */
@@ -203,7 +212,7 @@ th {
 }
 .left {
   text-align: left;
-  padding: 0 0.5em;
+  padding: 0 6px;
 }
 .all-caps {
   text-transform: uppercase;
@@ -211,12 +220,15 @@ th {
 .capitalize {
   text-transform: capitalize;
 }
+th {
+  font-size: smaller;
+}
 
 /* Cells */
 .cell {
   position: relative;
   border: 1px solid black;
   margin: auto 0;
-  padding: 0 0.5em;
+  padding: 0 6px;
 }
 </style>
