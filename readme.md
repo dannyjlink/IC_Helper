@@ -1,6 +1,8 @@
-# Shuttle: Vue, Electron
+# Vue, Electron
 
-## Vue/Electron
+## Purpose
+I made this app originally to help my mom, who was an instructional coach in public schools. She needed the ability to feed test score spreadsheets in and get a 'postcard' of each student that has all their test scores at a glance, instead of needing to comb through multiple spreadsheets with hundreds of rows to get one students test results. I made this feature work, but upon building, we realized we couldn't install the application on systems managed by the IT department. 
+It was a great exercise in front-end development and design that I did during an internship where I was also using Vue and Electron. 
 
 ### Project setup
 
@@ -59,16 +61,12 @@ Recommended Extensions:
 | src/               |               | Files packaged by webpack                         |
 |                    | assets/       | Assets (e.g. images) referenced by components     |
 |                    | components/   | General Vue components used within pages          |
-|                    | graphql/      | GraphQL fragments/mutations/queries/subscriptions |
 |                    | mixins/       | Vue mixins used by components                     |
 |                    | pages/        | Top-level components which function as pages      |
 |                    | App.vue       | Root component                                    |
 |                    | background.js | Main file for Electron main process               |
 |                    | main.js       | Main file for Electron renderer process           |
 |                    | vue-router.js | Vue Router config                                 |
-| .env               |               | Global environment variables                      |
-| .env.local         |               | Override global variables in local environment    |
-| .env.local.example |               | Example template for .env.local                   |
 | .gitignore         |               | .gitignore                                        |
 | babel.config.js    |               | Babel config                                      |
 | package.json       |               | Project definition (e.g. scripts, dependencies)   |

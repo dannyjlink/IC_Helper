@@ -51,13 +51,17 @@ export default {
 <style scoped>
 .all {
   position: absolute;
-  width: 100vw;
+  width: Calc(100vw + 2.5em);
   height: 100vh;
-  
+  display: flex;
+  flex-direction: row;
+  right: -100vw;
+  align-items: flex-start;
 }
 .tab-wrapper {
-  position: absolute;
-  right: 0;
+  position: relative;
+  order: 1;
+  right: 0; 
   height: 9em;
   width: 2.5em;
 }
@@ -102,6 +106,6 @@ export default {
   width: 100vw;
   height: 100vh;
   right: -100vw;
-  z-index: 20;
+  z-index: 100;
 }
 </style>
